@@ -6,18 +6,31 @@ import dotenv from 'dotenv';
 
 import productRoutes from './routes/productRoutes.js';
 import { sql } from './config/db.js';
+import path from 'path';
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const __dirname = path.resolve();
 
 app.use(express.json());
-app.use(helmet());
+app.use(helmet({
+    contentSecurityPolicy: false,
+}));
 app.use(morgan('dev'));
 app.use(cors());
 
 app.use('/api/products', productRoutes);
+
+if (process.env.NODE_ENV === "production") {
+  app.use(express.static(path.join(__dirname, "frontend", "dist")));
+
+  // Serve SPA index for any non-API route so client routing works
+  app.get(/^\/(?!api).*/, (req, res) => {
+    res.sendFile(path.resolve(__dirname, "frontend", "dist", "index.html"));
+  });
+}
 
 async function initDB() {
     try {
